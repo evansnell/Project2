@@ -4,7 +4,7 @@ from PyQt6.QtWidgets import QMainWindow
 from gui import Ui_VotingApp
 
 def id_already_exists(voter_id: str, filename: str = "voting_data.csv"):
-    """Return True if voter_id alerady appears in column 'id' of CSV"""
+    """Return True if voter_id already appears in column 'id' of CSV"""
     if not os.path.isfile(filename):
         return False
 
@@ -40,7 +40,7 @@ class VotingApp(QMainWindow):
         self.ui.info_label.setText('')
 
     def submit(self):
-        """Verifies inputs, updates display, and then saves data"""
+        """Verifies inputs until correct, updates display message, saves data in CSV, then clears inputs for next voter"""
         id = self.ui.id_input.toPlainText().strip()
         zip = self.ui.zip_input.toPlainText().strip()
         age = self.ui.age_input.toPlainText().strip()
@@ -51,6 +51,8 @@ class VotingApp(QMainWindow):
 
         # handle making uniform error messages
         def error(msg):
+            """intakes error message depending on which invalid input called it,
+            turns info_label red, then sets info_label to the error message"""
             self.ui.info_label.setStyleSheet("color: red")
             self.ui.info_label.setText(msg)
 
@@ -63,11 +65,13 @@ class VotingApp(QMainWindow):
         if valid_zip is False:
             return error("Invalid Zip\nMust be 5 digit integer")
         # age validation
-        valid_age = True if age.isdigit() and int(age) >= 18 else False
+        valid_age = True if age.isdigit() and 18 <= int(age) <= 115 else False
         if not age.isdigit():
             return error("Invalid Age\nMust be a positive integer")
         if int(age) < 18:
             return error("Invalid Age\nMust be 18 or older")
+        if int(age) > 115: # 115 is the age of the oldest person alive right now
+            return error("Invalid Age\nToo high - Not real")
         # check that a candidate is selected
         if candidate is None and valid_id and valid_zip and valid_age:
             self.ui.info_label.setStyleSheet(None)
@@ -77,13 +81,13 @@ class VotingApp(QMainWindow):
         if id_already_exists(id, self.csv_file):
             return error("Already voted with this ID")
 
-        # if inputs have made it past this, they are valid
+        # --- if inputs have made it past this point, they are valid ---
 
         # append row to csv
         with open(self.csv_file, 'a', newline='') as f:
             csv.writer(f).writerow([candidate, id, zip, age])
 
-        # clear display for next voter
+        # clear/reset display for next voter
         self.ui.info_label.setStyleSheet(None)
         self.ui.info_label.setText("Vote Submitted!")
         self.ui.id_input.clear()
